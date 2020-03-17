@@ -106,8 +106,10 @@ def generate_bounds_for_fragments(x_size, y_size, move_size, image_dimension):
 
     for y in range(moves_y):
         for x in range(moves_x):
-            bounds.append((y, y+image_dimension,
-                           x, x+image_dimension))
+            y_start = y * move_size
+            x_start = x * move_size
+            bounds.append((y_start, y_start + image_dimension,
+                           x_start, x_start + image_dimension))
 
     return bounds
 
@@ -133,8 +135,6 @@ def split_images_into_fragments():
             (x, y) = img.size
 
             image_bounds = generate_bounds_for_fragments(x, y, 200, 400)
-
-            # TODO: save fragments, using image_bounds for cropping guidelines
 
 
 def generate_fragment_variants():
