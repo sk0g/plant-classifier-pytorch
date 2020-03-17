@@ -54,6 +54,18 @@ def resize_and_convert_images_to_png():
 
             im = Image.open(file_path)
 
+            (x, y) = im.size
+
+            scaling_factor = (6_000_000 / (x * y)) ** 0.5
+            new_x = round(x * scaling_factor)
+            new_y = round(y * scaling_factor)
+
+            # sanity checks, can't upscale images (without stupid consequences)
+            if new_x > x:
+                new_x = x
+            if new_y > y:
+                new_y = y
+
             if im.mode == "CMYK":
                 im = im.convert("RGB")
 
