@@ -88,6 +88,30 @@ def resize_and_convert_images_to_png():
     print("All done! PNG images are ready to be split into fragments now.")
 
 
+def generate_bounds_for_fragments(x_size, y_size, move_size, image_dimension):
+    """
+    Generate bounds for fragments, for an image of arbitrary size
+
+    Inputs: 
+        x_size - width of the image
+        y_size - height of the image
+        move_size - pixels to move (horizontally and vertically) between each step    
+    Returns: 
+        a list of 4-tuples, of the format (start_y, end_y, start_x, end_x)
+    """
+    bounds = []
+
+    moves_x = (x_size - image_dimension) // move_size
+    moves_y = (y_size - image_dimension) // move_size
+
+    for y in range(moves_y):
+        for x in range(moves_x):
+            bounds.append((y, y+image_dimension,
+                           x, x+image_dimension))
+
+    return bounds
+
+
 def split_images_into_fragments():
     """
     Split each PNG image into multiple 400*400 images
@@ -98,6 +122,19 @@ def split_images_into_fragments():
     which would hamper training
     """
     print("Running split_images_into_fragments()")
+
+    current_directory = './Deep Learning Plant Classifier'
+
+    for (root, _, files) in os.walk(current_directory):
+        for file_name in [f for f in files if f.endswith(".png")]:
+            file_path = rf"{root}\{file_name}"
+
+            img = Image.open(file_path)
+            (x, y) = img.size
+
+            image_bounds = generate_bounds_for_fragments(x, y, 200, 400)
+
+            # TODO: save fragments, using image_bounds for cropping guidelines
 
 
 def generate_fragment_variants():
