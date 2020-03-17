@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import os
 
 
 def check_files():
@@ -10,7 +11,24 @@ def check_files():
 
     Assumes the images are all under ./images/$plant_type/*.tif (file name is mostly unimportant)
     """
-    pass
+    print("Running check_files()")
+    current_directory = './Deep Learning Plant Classifier'
+
+    subdirectories = {}
+    for (root, _, files) in os.walk(current_directory):
+        if len([f for f in files if f.endswith(".tif")]) > 0:
+            subdirectories[root] = len(files)
+
+    folder_without_enough_files_exists = False
+    for (k, v) in subdirectories.items():
+        if v <= 1:
+            print(f"{k} does not have enough TIF files under it - {v}")
+            folder_without_enough_files_exists = True
+
+    if folder_without_enough_files_exists:
+        print("Please download more test data for the folder(s) that threw an error message above, and then proceed")
+    else:
+        print("All good! You can proceed to the next step now :)")
 
 
 def resize_and_convert_images_to_png():
@@ -20,7 +38,7 @@ def resize_and_convert_images_to_png():
         Label it something computer-processable
 
     """
-    pass
+    print("Running resize_and_convert_images_to_png()")
 
 
 def split_png_images_for_training():
@@ -32,7 +50,7 @@ def split_png_images_for_training():
     NOTE: images should be manually re-checked after splitting, as some may contain largely un-necessary info, 
     which would hamper training
     """
-    pass
+    print("Running split_png_images_for_training()")
 
 
 if __name__ == '__main__':
@@ -41,11 +59,11 @@ if __name__ == '__main__':
     while True:
         key = input(prompt_text).lower()
 
-        if key == 'c':
-            check_files
-        elif key == 'r':
+        if key == "c":
+            check_files()
+        elif key == "r":
             resize_and_convert_images_to_png()
-        elif key == 's':
+        elif key == "s":
             split_png_images_for_training()
         else:
             print("Unkown key pressed, try again?")
