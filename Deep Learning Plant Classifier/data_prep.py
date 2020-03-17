@@ -46,7 +46,7 @@ def resize_and_convert_images_to_png():
     # first pass - convert to png, preserving file name (except for the extension)
     for (root, _, files) in os.walk(current_directory):
         for file_name in [f for f in files if f.endswith(".tif")]:
-            file_path = f"{root}\{file_name}"
+            file_path = rf"{root}\{file_name}"
             png_filepath = file_path.replace('.tif', '.png')
 
             if os.path.isfile(png_filepath):
@@ -60,6 +60,13 @@ def resize_and_convert_images_to_png():
             im.save(png_filepath)
 
     # second pass - delete the tif file IF PNG EXISTS
+    for (root, _, files) in os.walk(current_directory):
+        for file_name in [f for f in files if f.endswith(".tif")]:
+            file_path = rf"{root}\{file_name}"
+            png_filepath = file_path.replace('.tif', '.png')
+
+            if os.path.isfile(png_filepath):
+                os.remove(file_path)
 
 
 def split_images_into_fragments():
