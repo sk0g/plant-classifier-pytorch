@@ -59,16 +59,8 @@ def resize_and_convert_images_to_png():
 
             (x, y) = im.size
 
-            # math hacks, patent pending
-            scaling_factor = (6_000_000 / (x * y)) ** 0.5
-            new_x = round(x * scaling_factor)
-            new_y = round(y * scaling_factor)
-
-            # sanity checks, can't upscale images (without stupid consequences)
-            if new_x > x:
-                new_x = x
-            if new_y > y:
-                new_y = y
+            new_x = round(x / 3)
+            new_y = round(y / 3)
 
             if im.mode == "CMYK":
                 im = im.convert("RGB")
@@ -89,6 +81,8 @@ def resize_and_convert_images_to_png():
 
             if os.path.isfile(png_filepath):
                 os.remove(file_path)
+
+    print("All done! PNG images are ready to be split into fragments now.")
 
 
 def split_images_into_fragments():
