@@ -34,6 +34,12 @@ def check_files():
 
 
 def resize_file(tif_filepath):
+    """
+    Does the actual resizing and conversion of the images, provided a relative filepath to the TIF file
+
+    Conversions done are: CMYK -> RGB (if needed), TIF -> PNG
+    Shrinks them down to height/3, width/3 (1/9th the pixels)
+    """
     png_filepath = tif_filepath.replace('.tif', '.png')
     if os.path.isfile(png_filepath):
         return
