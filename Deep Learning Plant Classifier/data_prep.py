@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 from PIL import Image
+from concurrent.futures import ThreadPoolExecutor
 
 
 def check_files():
@@ -32,6 +33,25 @@ def check_files():
         print("All good! You can proceed to the next step now :)")
 
 
+def resize_file(tif_filepath):
+    png_filepath = tif_filepath.replace('.tif', '.png')
+    if os.path.isfile(png_filepath):
+        return
+
+    im = Image.open(tif_filepath)
+
+    (x, y) = im.size
+
+    new_x = round(x / 3)
+    new_y = round(y / 3)
+
+    if im.mode == "CMYK":
+        im = im.convert("RGB")
+
+    im.thumbnail((new_x, new_y), Image.LANCZOS)
+    im.save(png_filepath)
+
+
 def resize_and_convert_images_to_png():
     """
     For each file in the folders:
@@ -45,33 +65,10 @@ def resize_and_convert_images_to_png():
 
     # first pass - convert to png, preserving file name (except for the extension)
     for (root, _, files) in os.walk(current_directory):
-        conversion_progress_counter = 1
+        tif_filepaths = [rf"{root}\{f}" for f in files if f.endswith(".tif")]
 
-        tif_files = [f for f in files if f.endswith(".tif")]
-        for file_name in tif_files:
-            file_path = rf"{root}\{file_name}"
-            png_filepath = file_path.replace('.tif', '.png')
-
-            if os.path.isfile(png_filepath):
-                continue
-
-            im = Image.open(file_path)
-
-            (x, y) = im.size
-
-            new_x = round(x / 3)
-            new_y = round(y / 3)
-
-            if im.mode == "CMYK":
-                im = im.convert("RGB")
-
-            im.thumbnail((new_x, new_y), Image.LANCZOS)
-            im.save(png_filepath)
-
-            print(
-                f"Converted image {conversion_progress_counter}/{len(tif_files)}")
-
-            conversion_progress_counter += 1
+        with ThreadPoolExecutor(max_workers=16) as executor:
+            executor.map(resize_file, tif_filepaths)
 
     # second pass - delete the tif file IF PNG EXISTS
     for (root, _, files) in os.walk(current_directory):
