@@ -92,11 +92,11 @@ def generate_bounds_for_fragments(x_size, y_size, move_size, image_dimension):
     """
     Generate bounds for fragments, for an image of arbitrary size
 
-    Inputs: 
+    Inputs:
         x_size - width of the image
         y_size - height of the image
-        move_size - pixels to move (horizontally and vertically) between each step    
-    Returns: 
+        move_size - pixels to move (horizontally and vertically) between each step
+    Returns:
         a list of 4-tuples, of the format (x_start, y_start, x_end, y_end)
     """
     bounds = []
@@ -118,10 +118,10 @@ def generate_bounds_for_fragments(x_size, y_size, move_size, image_dimension):
 def split_images_into_fragments():
     """
     Split each PNG image into multiple 400*400 images
-        The exact amount should go off the size of the image 
+        The exact amount should go off the size of the image
         The size will vary as, after resizing and converting images, they are also cropped to only include plant bits
 
-    NOTE: images should be manually re-checked after splitting, as some may contain largely un-necessary info, 
+    NOTE: images should be manually re-checked after splitting, as some may contain largely un-necessary info,
     which would hamper training
     """
     print("Running split_images_into_fragments()")
@@ -143,7 +143,7 @@ def split_images_into_fragments():
                     ".png", f",fragment-{fragment_number:04}.png")
                 fragment.save(fragment_name)
 
-    print("All done! PNG fragments have been generated. Once junk images are deleted, you can create variants :)")
+    print("All done! PNG fragments have been generated. Once junk images are deleted, you can create variants.")
 
 
 def generate_fragment_variants():
@@ -158,6 +158,36 @@ def generate_fragment_variants():
         E - flipped vertically
     """
     print("Running generate_fragment_variants()")
+
+    current_directory = './Deep Learning Plant Classifier'
+
+    for (root, _, files) in os.walk(current_directory):
+        for file_name in [f for f in files if f.endswith(".png") and "fragment" in f and "variant" not in f]:
+            file_path = rf"{root}\{file_name}"
+
+            img = Image.open(file_path)
+
+            # Variant A
+            a = img.transpose(Image.ROTATE_90)
+            a.save(file_path.replace('.png', ',variant-a.png'))
+
+            # Variant B
+            b = img.transpose(Image.ROTATE_180)
+            b.save(file_path.replace('.png', ',variant-b.png'))
+
+            # Variant C
+            c = img.transpose(Image.ROTATE_270)
+            c.save(file_path.replace('.png', ',variant-c.png'))
+
+            # Variant D
+            d = img.transpose(Image.FLIP_LEFT_RIGHT)
+            d.save(file_path.replace('.png', ',variant-d.png'))
+
+            # Variant E
+            e = img.transpose(Image.FLIP_TOP_BOTTOM)
+            e.save(file_path.replace('.png', ',variant-e.png'))
+
+    print("All done! Time for deep learning :)")
 
 
 if __name__ == '__main__':
