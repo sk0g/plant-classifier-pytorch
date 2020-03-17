@@ -45,7 +45,10 @@ def resize_and_convert_images_to_png():
 
     # first pass - convert to png, preserving file name (except for the extension)
     for (root, _, files) in os.walk(current_directory):
-        for file_name in [f for f in files if f.endswith(".tif")]:
+        conversion_progress_counter = 1
+
+        tif_files = [f for f in files if f.endswith(".tif")]
+        for file_name in tif_files:
             file_path = rf"{root}\{file_name}"
             png_filepath = file_path.replace('.tif', '.png')
 
@@ -56,6 +59,7 @@ def resize_and_convert_images_to_png():
 
             (x, y) = im.size
 
+            # math hacks, patent pending
             scaling_factor = (6_000_000 / (x * y)) ** 0.5
             new_x = round(x * scaling_factor)
             new_y = round(y * scaling_factor)
@@ -69,7 +73,13 @@ def resize_and_convert_images_to_png():
             if im.mode == "CMYK":
                 im = im.convert("RGB")
 
+            im.thumbnail((new_x, new_y), Image.LANCZOS)
             im.save(png_filepath)
+
+            print(
+                f"Converted image {conversion_progress_counter}/{len(tif_files)}")
+
+            conversion_progress_counter += 1
 
     # second pass - delete the tif file IF PNG EXISTS
     for (root, _, files) in os.walk(current_directory):
