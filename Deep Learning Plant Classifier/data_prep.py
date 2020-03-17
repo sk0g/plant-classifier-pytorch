@@ -97,7 +97,7 @@ def generate_bounds_for_fragments(x_size, y_size, move_size, image_dimension):
         y_size - height of the image
         move_size - pixels to move (horizontally and vertically) between each step    
     Returns: 
-        a list of 4-tuples, of the format (start_y, end_y, start_x, end_x)
+        a list of 4-tuples, of the format (x_start, y_start, x_end, y_end)
     """
     bounds = []
 
@@ -108,8 +108,9 @@ def generate_bounds_for_fragments(x_size, y_size, move_size, image_dimension):
         for x in range(moves_x):
             y_start = y * move_size
             x_start = x * move_size
-            bounds.append((y_start, y_start + image_dimension,
-                           x_start, x_start + image_dimension))
+            x_end = x_start + image_dimension
+            y_end = y_start + image_dimension
+            bounds.append((x_start, y_start, x_end, y_end))
 
     return bounds
 
@@ -135,6 +136,14 @@ def split_images_into_fragments():
             (x, y) = img.size
 
             image_bounds = generate_bounds_for_fragments(x, y, 200, 400)
+
+            for fragment_number, bounds in enumerate(image_bounds):
+                fragment = img.crop(bounds)
+                fragment_name = file_path.replace(
+                    ".png", f",fragment-{fragment_number:04}.png")
+                fragment.save(fragment_name)
+
+    print("All done! PNG fragments have been generated. Once junk images are deleted, you can create variants :)")
 
 
 def generate_fragment_variants():
