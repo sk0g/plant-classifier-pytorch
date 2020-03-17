@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import os
+from PIL import Image
 
 
 def check_files():
@@ -34,13 +35,29 @@ def check_files():
 def resize_and_convert_images_to_png():
     """
     For each file in the folders:
-        Convert to a uniform size, let's say, 6MP (3000*2000, if that exact aspect ratio is matched)
+        Convert to a .PNG file, preserve file size
         Label it something computer-processable
 
     """
     print("Running resize_and_convert_images_to_png()")
 
+    current_directory = './Deep Learning Plant Classifier'
+
     # first pass - convert to png, preserving file name (except for the extension)
+    for (root, _, files) in os.walk(current_directory):
+        for file_name in [f for f in files if f.endswith(".tif")]:
+            file_path = f"{root}\{file_name}"
+            png_filepath = file_path.replace('.tif', '.png')
+
+            if os.path.isfile(png_filepath):
+                continue
+
+            im = Image.open(file_path)
+
+            if im.mode == "CMYK":
+                im = im.convert("RGB")
+
+            im.save(png_filepath)
 
     # second pass - delete the tif file IF PNG EXISTS
 
@@ -61,7 +78,12 @@ def generate_fragment_variants():
     """
     Generates variants for each image fragment
 
-    TODO: describe further
+    Each fragment should also have variants, as below:
+        A - rotated 90 degrees
+        B - rotated 180 degrees
+        C - rotated 270 degrees
+        D - flipped horizontally
+        E - flipped vertically
     """
     print("Running generate_fragment_variants()")
 
