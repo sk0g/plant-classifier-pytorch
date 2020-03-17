@@ -40,8 +40,12 @@ def resize_and_convert_images_to_png():
     """
     print("Running resize_and_convert_images_to_png()")
 
+    # first pass - convert to png, preserving file name (except for the extension)
 
-def split_png_images_for_training():
+    # second pass - delete the tif file IF PNG EXISTS
+
+
+def split_images_into_fragments():
     """
     Split each PNG image into multiple 400*400 images
         The exact amount should go off the size of the image 
@@ -50,11 +54,20 @@ def split_png_images_for_training():
     NOTE: images should be manually re-checked after splitting, as some may contain largely un-necessary info, 
     which would hamper training
     """
-    print("Running split_png_images_for_training()")
+    print("Running split_images_into_fragments()")
+
+
+def generate_fragment_variants():
+    """
+    Generates variants for each image fragment
+
+    TODO: describe further
+    """
+    print("Running generate_fragment_variants()")
 
 
 if __name__ == '__main__':
-    prompt_text = "What function should be run? \n [c]heck files | [r]esize and convert | [s]plit for training\n"
+    prompt_text = "What function should be run? \n [c]heck files | [r]esize and convert | [s]plit into fragments | [g]enerate fragment variants\n"
 
     while True:
         key = input(prompt_text).lower()
@@ -64,6 +77,8 @@ if __name__ == '__main__':
         elif key == "r":
             resize_and_convert_images_to_png()
         elif key == "s":
-            split_png_images_for_training()
+            split_images_into_fragments()
+        elif key == "g":
+            generate_fragment_variants()
         else:
             print("Unkown key pressed, try again?")
