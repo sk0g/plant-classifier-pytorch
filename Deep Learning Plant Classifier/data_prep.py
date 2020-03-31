@@ -273,7 +273,7 @@ def generate_and_record_splits():
 
                 # Make a set from just the file names (image names are of the format image_name,X,Y.png)
                 unique_image_names = {file.split(",")[0]
-                                      for file in files if file.endswith(".png")}
+                                      for file in files if file.endswith(".png") and "fragment" in file}
 
                 # Dedicate 10% of images to testing, or 1 - whichever is higher
                 test_image_count = max(1, round(len(unique_image_names) / 10))
@@ -302,8 +302,6 @@ def generate_and_record_splits():
                 # Write split details into JSON file
                 with open(split_filename, 'w+') as f:
                     json.dump(split_details, f, indent=4)
-
-                # FIXME: test image fragments show up under trainingVariants and validationVariants under not-background classes
 
     print("All done! You can now load up the splits and begin training.")
 
