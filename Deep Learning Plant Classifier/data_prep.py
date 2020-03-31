@@ -161,7 +161,6 @@ def generate_fragment_variants():
     print("Running generate_fragment_variants()")
 
     current_directory = '../dataset'
-
     new_dimensions = (224, 224)
 
     for (root, _, files) in os.walk(current_directory):
@@ -200,11 +199,61 @@ def generate_fragment_variants():
             z.thumbnail(new_dimensions, Image.LANCZOS)
             z.save(file_path.replace('.png', 'variant-z.png'))
 
-
     print("All done! Time for deep learning :)")
 
+
+def generate_and_record_splits():
+    """
+    Generates training, validation and testing splits for images in ../dataset/class_name/[image_names]
+
+    Stores these variants under filenames in the scheme of plan-0.json, plan-1.json... plan-9.json
+
+    The basic format of the JSON file will be as follows:
+    {
+        "background": {
+            "trainingAndValidation": {
+                "training": [
+                    "file1,fragment-0001,variant-b.png",
+                    "file2,fragment-0001,variant-z.png",
+                    "file1-fragment-0001,variant-d.png",
+                ],
+                "validation": [
+                    "file1,fragment-0001,variant-a.png",
+                    "file2,fragment-0001,variant-b.png",
+                    "file1-fragment-0001,variant-c.png",
+                ]
+            }
+            "testingFiles": [
+                "file3"
+            ]
+        },
+        "bertya calycina" {
+            "trainingAndValidation": {
+                "training": [
+                    "file4,fragment-0001,variant-b.png",
+                    "file5,fragment-0001,variant-z.png",
+                    "file4-fragment-0001,variant-d.png",
+                ],
+                "validation": [
+                    "file4,fragment-0001,variant-a.png",
+                    "file5,fragment-0001,variant-b.png",
+                    "file4-fragment-0001,variant-c.png",
+                ]
+            }
+            "testingFiles": [
+                "file6"
+            ]
+        }
+    }
+
+    NOTE: Testing allocates entire files at a time, while training/ validation splits allocate on the variant level.
+    Any fragment and variant generated from a file name under testingFiles will be used for testing, 
+    while training and validation fragments and variants will be accessed exactly as per the split.
+    """
+
+
 if __name__ == '__main__':
-    prompt_text = "What function should be run? \n [c]heck files | [r]esize and convert | [s]plit into fragments | [g]enerate fragment variants\n"
+    prompt_text = "What function should be run? \n [c]heck files | [r]esize and convert | [s]plit into fragments | [g]enerate fragment variants | s[p]lit dataset \n"
 
     while True:
         key = input(prompt_text).lower()
@@ -217,5 +266,7 @@ if __name__ == '__main__':
             split_images_into_fragments()
         elif key == "g":
             generate_fragment_variants()
+        elif key == "p":
+            generate_and_record_splits()
         else:
             print("Unkown key pressed, try again?")
