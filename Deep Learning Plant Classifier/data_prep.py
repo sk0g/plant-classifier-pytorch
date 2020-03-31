@@ -1,7 +1,18 @@
 #!/usr/bin/env python3
 import os
+import json
 from PIL import Image
 from concurrent.futures import ThreadPoolExecutor
+from random import sample, shuffle
+from math import sqrt
+
+
+def calculate_number_of_validation_images(n):
+    """
+    Calculate number of validation images that should be selected, given an image pool of size n
+    """
+
+    return max(1, round(1/sqrt(2 * n) * n))
 
 
 def check_files():
@@ -199,7 +210,7 @@ def generate_fragment_variants():
             z.thumbnail(new_dimensions, Image.LANCZOS)
             z.save(file_path.replace('.png', 'variant-z.png'))
 
-    print("All done! Time for deep learning :)")
+    print("All done! Almost training time :)")
 
 
 def generate_and_record_splits():
@@ -211,35 +222,31 @@ def generate_and_record_splits():
     The basic format of the JSON file will be as follows:
     {
         "background": {
-            "trainingAndValidation": {
-                "training": [
-                    "file1,fragment-0001,variant-b.png",
-                    "file2,fragment-0001,variant-z.png",
-                    "file1-fragment-0001,variant-d.png",
-                ],
-                "validation": [
-                    "file1,fragment-0001,variant-a.png",
-                    "file2,fragment-0001,variant-b.png",
-                    "file1-fragment-0001,variant-c.png",
-                ]
-            }
+            "trainingVariants": [
+                "file1,fragment-0001,variant-b.png",
+                "file2,fragment-0001,variant-z.png",
+                "file1-fragment-0001,variant-d.png",
+            ],
+            "validationVariants": [
+                "file1,fragment-0001,variant-a.png",
+                "file2,fragment-0001,variant-b.png",
+                "file1-fragment-0001,variant-c.png",
+            ]
             "testingFiles": [
                 "file3"
             ]
         },
         "bertya calycina" {
-            "trainingAndValidation": {
-                "training": [
-                    "file4,fragment-0001,variant-b.png",
-                    "file5,fragment-0001,variant-z.png",
-                    "file4-fragment-0001,variant-d.png",
-                ],
-                "validation": [
-                    "file4,fragment-0001,variant-a.png",
-                    "file5,fragment-0001,variant-b.png",
-                    "file4-fragment-0001,variant-c.png",
-                ]
-            }
+            "trainingVariants": [
+                "file4,fragment-0001,variant-b.png",
+                "file5,fragment-0001,variant-z.png",
+                "file4-fragment-0001,variant-d.png",
+            ],
+            "validationVariants": [
+                "file4,fragment-0001,variant-a.png",
+                "file5,fragment-0001,variant-b.png",
+                "file4-fragment-0001,variant-c.png",
+            ]
             "testingFiles": [
                 "file6"
             ]
@@ -247,9 +254,58 @@ def generate_and_record_splits():
     }
 
     NOTE: Testing allocates entire files at a time, while training/ validation splits allocate on the variant level.
-    Any fragment and variant generated from a file name under testingFiles will be used for testing, 
+    Any fragment and variant generated from a file name under testingFiles will be used for testing,
     while training and validation fragments and variants will be accessed exactly as per the split.
     """
+
+    current_directory = '../dataset'
+
+    for split_number in range(0, 10):
+        split_filename = f"split-{split_number}.json"
+        print(f"Generating {split_filename}")
+        split_details = dict()
+
+        for (root, _, files) in os.walk(current_directory):
+            # Only iterate through folders containing variant images
+            if any("variant-z.png" in s for s in files):
+                # Top level JSON key under which to write data
+                class_name = root.split(os.sep)[-1]
+
+                # Make a set from just the file names (image names are of the format image_name,X,Y.png)
+                unique_image_names = {file.split(",")[0]
+                                      for file in files if file.endswith(".png")}
+
+                # Dedicate 10% of images to testing, or 1 - whichever is higher
+                test_image_count = max(1, round(len(unique_image_names) / 10))
+                test_image_names = sample(unique_image_names, test_image_count)
+
+                # Use variants from images not in test_image_names for training and validation
+                usable_variants = [f for f in files if "variant-" in f and
+                                   not any(file_name in f for file_name in test_image_names)]
+
+                validation_variant_count = calculate_number_of_validation_images(
+                    len(usable_variants))
+
+                validation_variants = []
+                # Pop the required number of variants for the validation set
+                for _ in range(0, validation_variant_count):
+                    shuffle(usable_variants)
+                    validation_variants.append(usable_variants.pop())
+                # The remaining variants in usable_variants are the training variants
+
+                split_details[class_name] = {
+                    "testingFiles": test_image_names,
+                    "trainingVariants": usable_variants,
+                    "validationVariants": validation_variants
+                }
+
+                # Write split details into JSON file
+                with open(split_filename, 'w+') as f:
+                    json.dump(split_details, f, indent=4)
+
+                # FIXME: test image fragments show up under trainingVariants and validationVariants under not-background classes
+
+    print("All done! You can now load up the splits and begin training.")
 
 
 if __name__ == '__main__':

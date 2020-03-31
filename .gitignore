@@ -1,4 +1,5 @@
 *.tif
 *.png
 *.pdf
+*.json
 .vscode/.ropeproject/config.py
