@@ -148,7 +148,7 @@ def split_images_into_fragments():
 
 def generate_fragment_variants():
     """
-    Generates variants for each image fragment
+    Generates variants for each image fragment, and also resizes them to the target size (224 * 224)
 
     Each fragment should also have variants, as below:
         A - rotated 90 degrees
@@ -156,10 +156,13 @@ def generate_fragment_variants():
         C - rotated 270 degrees
         D - flipped horizontally
         E - flipped vertically
+        Z - resize only
     """
     print("Running generate_fragment_variants()")
 
-    current_directory = './Deep Learning Plant Classifier'
+    current_directory = '../dataset'
+
+    new_dimensions = (224, 224)
 
     for (root, _, files) in os.walk(current_directory):
         for file_name in [f for f in files if f.endswith(".png") and "fragment" in f and "variant" not in f]:
@@ -169,26 +172,36 @@ def generate_fragment_variants():
 
             # Variant A
             a = img.transpose(Image.ROTATE_90)
+            a.thumbnail(new_dimensions, Image.LANCZOS)
             a.save(file_path.replace('.png', ',variant-a.png'))
 
             # Variant B
             b = img.transpose(Image.ROTATE_180)
+            b.thumbnail(new_dimensions, Image.LANCZOS)
             b.save(file_path.replace('.png', ',variant-b.png'))
 
             # Variant C
             c = img.transpose(Image.ROTATE_270)
+            c.thumbnail(new_dimensions, Image.LANCZOS)
             c.save(file_path.replace('.png', ',variant-c.png'))
 
             # Variant D
             d = img.transpose(Image.FLIP_LEFT_RIGHT)
+            d.thumbnail(new_dimensions, Image.LANCZOS)
             d.save(file_path.replace('.png', ',variant-d.png'))
 
             # Variant E
             e = img.transpose(Image.FLIP_TOP_BOTTOM)
+            e.thumbnail(new_dimensions, Image.LANCZOS)
             e.save(file_path.replace('.png', ',variant-e.png'))
 
-    print("All done! Time for deep learning :)")
+            # Variant Z - resize only
+            z = img
+            z.thumbnail(new_dimensions, Image.LANCZOS)
+            z.save(file_path.replace('.png', 'variant-z.png'))
 
+
+    print("All done! Time for deep learning :)")
 
 if __name__ == '__main__':
     prompt_text = "What function should be run? \n [c]heck files | [r]esize and convert | [s]plit into fragments | [g]enerate fragment variants\n"
