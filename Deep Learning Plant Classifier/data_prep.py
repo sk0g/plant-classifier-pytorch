@@ -180,30 +180,34 @@ def generate_fragment_variants():
 
             img = Image.open(file_path)
 
-            # Variant A
-            a = img.transpose(Image.ROTATE_90)
-            a.thumbnail(new_dimensions, Image.LANCZOS)
-            a.save(file_path.replace('.png', ',variant-a.png'))
+            """ 
+            NOTE: These transforms can be done during batch loading with torchvision.transforms, 
+            so this function is only used to resize to (224, 244)
+            """
+            # # Variant A
+            # a = img.transpose(Image.ROTATE_90)
+            # a.thumbnail(new_dimensions, Image.LANCZOS)
+            # a.save(file_path.replace('.png', ',variant-a.png'))
 
-            # Variant B
-            b = img.transpose(Image.ROTATE_180)
-            b.thumbnail(new_dimensions, Image.LANCZOS)
-            b.save(file_path.replace('.png', ',variant-b.png'))
+            # # Variant B
+            # b = img.transpose(Image.ROTATE_180)
+            # b.thumbnail(new_dimensions, Image.LANCZOS)
+            # b.save(file_path.replace('.png', ',variant-b.png'))
 
-            # Variant C
-            c = img.transpose(Image.ROTATE_270)
-            c.thumbnail(new_dimensions, Image.LANCZOS)
-            c.save(file_path.replace('.png', ',variant-c.png'))
+            # # Variant C
+            # c = img.transpose(Image.ROTATE_270)
+            # c.thumbnail(new_dimensions, Image.LANCZOS)
+            # c.save(file_path.replace('.png', ',variant-c.png'))
 
-            # Variant D
-            d = img.transpose(Image.FLIP_LEFT_RIGHT)
-            d.thumbnail(new_dimensions, Image.LANCZOS)
-            d.save(file_path.replace('.png', ',variant-d.png'))
+            # # Variant D
+            # d = img.transpose(Image.FLIP_LEFT_RIGHT)
+            # d.thumbnail(new_dimensions, Image.LANCZOS)
+            # d.save(file_path.replace('.png', ',variant-d.png'))
 
-            # Variant E
-            e = img.transpose(Image.FLIP_TOP_BOTTOM)
-            e.thumbnail(new_dimensions, Image.LANCZOS)
-            e.save(file_path.replace('.png', ',variant-e.png'))
+            # # Variant E
+            # e = img.transpose(Image.FLIP_TOP_BOTTOM)
+            # e.thumbnail(new_dimensions, Image.LANCZOS)
+            # e.save(file_path.replace('.png', ',variant-e.png'))
 
             # Variant Z - resize only
             z = img
@@ -236,7 +240,7 @@ def generate_and_record_splits():
                 "file3"
             ]
         },
-        "bertya calycina" {
+        "bertya" {
             "trainingVariants": [
                 "file4,fragment-0001,variant-b.png",
                 "file5,fragment-0001,variant-z.png",
@@ -251,6 +255,7 @@ def generate_and_record_splits():
                 "file6"
             ]
         }
+        ...
     }
 
     NOTE: Testing allocates entire files at a time, while training/ validation splits allocate on the variant level.
