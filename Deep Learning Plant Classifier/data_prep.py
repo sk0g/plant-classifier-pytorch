@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import os
+import shutil
 import json
 from PIL import Image
 from concurrent.futures import ThreadPoolExecutor
@@ -263,14 +264,44 @@ def generate_and_record_splits():
     while training and validation fragments and variants will be accessed exactly as per the split.
     """
 
-    current_directory = '../dataset'
+    dataset_directory = '../dataset'
+    batch_directory = '../batches'
+
+    try:
+        shutil.rmtree(batch_directory)
+        os.rmdir(batch_directory)
+    except:
+        print("batches directory not found, continuing")
+
+    os.mkdir(batch_directory)
+    print("Created batches directory")
 
     for split_number in range(0, 10):
         split_filename = f"split-{split_number}.json"
         print(f"Generating {split_filename}")
+
+        """
+        Create split directory with files in the following structure:
+        ../dataset/
+        ../batches/
+            | - batch-0/
+            | - train/
+            | - val/
+            | - test/
+            | - batch-1/
+            | - ...
+        """
+        split_directory = f"{batch_directory}/batch-{split_number}"
+        train_path = f"{split_directory}/train"
+        test_path = f"{split_directory}/test"
+        val_path = f"{split_directory}/val"
+
+        for directory_name in [split_directory, train_path, test_path, val_path]:
+            os.mkdir(directory_name)
+
         split_details = dict()
 
-        for (root, _, files) in os.walk(current_directory):
+        for (root, _, files) in os.walk(dataset_directory):
             # Only iterate through folders containing variant images
             if any("variant-z.png" in s for s in files):
                 # Top level JSON key under which to write data
@@ -278,15 +309,15 @@ def generate_and_record_splits():
 
                 # Make a set from just the file names (image names are of the format image_name,X,Y.png)
                 unique_image_names = {file.split(",")[0]
-                                      for file in files if file.endswith(".png") and "fragment" in file}
+                                      for file in files if file.endswith("variant-z.png")}
 
-                # Dedicate 10% of images to testing, or 1 - whichever is higher
+                # Dedicate 10% of images to testing, or 1, whichever is higher
                 test_image_count = max(1, round(len(unique_image_names) / 10))
                 test_image_names = sample(unique_image_names, test_image_count)
 
                 # Use variants from images not in test_image_names for training and validation
-                usable_variants = [f for f in files if "variant-" in f and
-                                   not any(file_name in f for file_name in test_image_names)]
+                usable_variants = [f for f in files if "variant-z" in f and
+                                   f.split(",")[0] not in test_image_names]
 
                 validation_variant_count = calculate_number_of_validation_images(
                     len(usable_variants))
@@ -307,6 +338,29 @@ def generate_and_record_splits():
                 # Write split details into JSON file
                 with open(split_filename, 'w+') as f:
                     json.dump(split_details, f, indent=4)
+
+                # Create class directory for current class
+                for directory in [train_path, test_path, val_path]:
+                    os.mkdir(f"{directory}/{class_name}")
+
+                # Copy files to directories
+                for train_variant in usable_variants:
+                    shutil.copyfile(src=f"{dataset_directory}/{class_name}/{train_variant}",
+                                    dst=f"{train_path}/{class_name}/{train_variant}")
+                print(f"Copied images to batch-{split_number}/train")
+
+                for val_variant in validation_variants:
+                    shutil.copyfile(src=f"{dataset_directory}/{class_name}/{val_variant}",
+                                    dst=f"{val_path}/{class_name}/{val_variant}")
+                print(f"Copied images to batch-{split_number}/val")
+
+                for image_name in test_image_names:
+                    variants_to_copy = [f for f in files if image_name in f]
+
+                    for test_variant in variants_to_copy:
+                        shutil.copyfile(src=f"{dataset_directory}/{class_name}/{test_variant}",
+                                        dst=f"{test_path}/{class_name}/{test_variant}")
+                print(f"Copied images to batch-{split_number}/test")
 
     print("All done! You can now load up the splits and begin training.")
 
