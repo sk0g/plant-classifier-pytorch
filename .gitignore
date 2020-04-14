@@ -1,5 +1,6 @@
 *.tif
 *.png
 *.pdf
+*.pyc
 *.json
 .vscode/

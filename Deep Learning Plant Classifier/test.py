@@ -31,18 +31,17 @@ def test_model(model_to_test):
         # predict inputs, and reverse the LogSoftMax
         real_predictions = torch.exp(model_to_test(inputs))
 
-        for i in range(0, len(labels)):
-            # Get top class of outputs, tested for top-1
-            top_p, top_class = real_predictions.topk(1, dim=1)
-            equals = top_class == labels.view(*top_class.shape)
+        # Get top class of outputs, tested for top-1
+        top_p, top_class = real_predictions.topk(1, dim=1)
+        equals = top_class == labels.view(*top_class.shape)
 
-            # Calculate mean, add it to running accuracy for current epoch
-            accuracy += torch.mean(
-                equals.type(torch.FloatTensor)).item()
+        # Calculate mean, add it to running accuracy for current testing batch
+        accuracy += torch.mean(
+            equals.type(torch.FloatTensor)).item()
 
         testing_bar.next()
 
-    testing_accuracy = accuracy / len(testing_loader.dataset)
+    testing_accuracy = accuracy / len(testing_loader)
     print(f"\nAccuracy -> {'{:.4f}'.format(testing_accuracy * 100)}%")
 
 
