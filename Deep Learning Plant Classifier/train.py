@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+import ctypes
+from progress.bar import FillingSquaresBar, FillingCirclesBar
 from torchvision import transforms
 from torchvision.datasets import ImageFolder
 from torch.utils.data import DataLoader
@@ -8,9 +10,8 @@ import torch.nn as nn
 import torch
 import random
 
-from progress.bar import FillingSquaresBar, FillingCirclesBar
+
 # Windows workaround for LoadLibraryA issue
-import ctypes
 ctypes.cdll.LoadLibrary('caffe2_nvrtc.dll')
 
 mean = [x / 255 for x in [125.3, 123.0, 113.9]]
@@ -47,9 +48,6 @@ training_set = ImageFolder(root="../batches/batch-0/train",
 validation_set = ImageFolder(root="../batches/batch-0/val",
                              transform=prepare)
 
-testing_set = ImageFolder(root="../batches/batch-0/test",
-                          transform=prepare)
-
 # dataloaders
 training_loader = DataLoader(dataset=training_set,
                              batch_size=32,
@@ -59,90 +57,93 @@ validation_loader = DataLoader(dataset=validation_set,
                                batch_size=32,
                                shuffle=True)
 
-testing_loader = DataLoader(dataset=testing_set,
-                            batch_size=32,
-                            shuffle=True)
-
-
-# load pretrained densenet-161 model
-model = models.densenet161(pretrained=True)
-
-# turn training off for all parameters first
-for parameter in model.parameters():
-    parameter.requires_grad = False
-
-classifier_input = model.classifier.in_features
-num_labels = 3
-
-# replace the classifier layer
-classifier = nn.Sequential(nn.Linear(classifier_input, 1024),
-                           nn.ReLU(),
-                           nn.Linear(1024, 512),
-                           nn.ReLU(),
-                           nn.Linear(512, num_labels),
-                           nn.LogSoftmax(dim=1))
-
-model.classifier = classifier
-
-# Move to GPU for faster training, if available
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model.to(device)
 
-error_function = nn.NLLLoss()
-optimiser = torch.optim.AdamW(classifier.parameters())
 
-epochs = 100
-for epoch in range(epochs):
-    training_loss, validation_loss, accuracy, counter = 0, 0, 0, 0
+if __name__ == '__main__':
+    # load pretrained densenet-161 model
+    model = models.densenet161(pretrained=True)
 
-    model.train()
-    training_bar = FillingCirclesBar(message='Training',
-                                     max=len(training_loader))
-    for inputs, labels in training_loader:
-        inputs, labels = inputs.to(device), labels.to(device)
+    # turn training off for all parameters first
+    for parameter in model.parameters():
+        parameter.requires_grad = False
 
-        # Clear the gradients
-        optimiser.zero_grad()
+    classifier_input = model.classifier.in_features
+    num_labels = 3
 
-        output = model.forward(inputs)
+    # replace the classifier layer
+    classifier = nn.Sequential(nn.Linear(classifier_input, 1024),
+                               nn.ReLU(),
+                               nn.Linear(1024, 512),
+                               nn.ReLU(),
+                               nn.Linear(512, num_labels),
+                               nn.LogSoftmax(dim=1))
 
-        # Check the loss
-        loss = error_function(output, labels)
-        loss.backward()
+    model.classifier = classifier
 
-        optimiser.step()
+    # Move to GPU for faster training, if available
+    model.to(device)
 
-        training_loss += loss.item()*inputs.size(0)
+    error_function = nn.NLLLoss()
+    optimiser = torch.optim.AdamW(classifier.parameters())
 
-        training_bar.next()
+    epochs = 201
+    for epoch in range(epochs):
+        training_loss, validation_loss, accuracy, counter = 0, 0, 0, 0
 
-    validation_bar = FillingSquaresBar(message='Validating',
-                                       max=len(validation_loader))
-    with torch.no_grad():
-        for inputs, labels in validation_loader:
+        model.train()
+        training_bar = FillingCirclesBar(message='Training',
+                                         max=len(training_loader))
+        for inputs, labels in training_loader:
             inputs, labels = inputs.to(device), labels.to(device)
 
-            # Forward pass, calculate validation loss
+            # Clear the gradients
+            optimiser.zero_grad()
+
             output = model.forward(inputs)
-            validation_loss = error_function(output, labels)
-            validation_loss += validation_loss.item()*inputs.size(0)
 
-            # Reverse the log part of LogSoftMax
-            real_output = torch.exp(output)
+            # Check the loss
+            loss = error_function(output, labels)
+            loss.backward()
 
-            # Get top class of outputs, tested for top-1
-            top_p, top_class = output.topk(1, dim=1)
-            equals = top_class == labels.view(*top_class.shape)
+            optimiser.step()
 
-            # Calculate mean, add it to running accuracy for current epoch
-            accuracy += torch.mean(
-                equals.type(torch.FloatTensor)).item()
+            training_loss += loss.item()*inputs.size(0)
 
-            validation_bar.next()
+            training_bar.next()
 
-    # Calculate and print the losses
-    training_loss = training_loss / len(training_loader.dataset)
-    validation_loss = validation_loss / len(validation_loader.dataset)
+        validation_bar = FillingSquaresBar(message='Validating',
+                                           max=len(validation_loader))
+        with torch.no_grad():
+            for inputs, labels in validation_loader:
+                inputs, labels = inputs.to(device), labels.to(device)
 
-    print(f"Accuracy -> {accuracy/len(validation_loader)}")
-    print(f"Epoch {epoch} recap -> \t|\t Training loss: {'{:.4f}'.format(training_loss)} \t|\t Validation loss: {'{:.4f}'.format(validation_loss)}")
+                # Forward pass, calculate validation loss
+                output = model.forward(inputs)
+                validation_loss = error_function(output, labels)
+                validation_loss += validation_loss.item()*inputs.size(0)
+
+                # Reverse the log part of LogSoftMax
+                real_output = torch.exp(output)
+
+                # Get top class of outputs, tested for top-1
+                top_p, top_class = output.topk(1, dim=1)
+                equals = top_class == labels.view(*top_class.shape)
+
+                # Calculate mean, add it to running accuracy for current epoch
+                accuracy += torch.mean(
+                    equals.type(torch.FloatTensor)).item()
+
+                validation_bar.next()
+
+        # Calculate and print the losses
+        training_loss = training_loss / len(training_loader.dataset)
+        validation_loss = validation_loss / len(validation_loader.dataset)
+
+        print(f"Accuracy -> {accuracy/len(validation_loader)}")
+        print(f"Epoch {epoch} recap -> \t|\t Training loss: {'{:.6f}'.format(training_loss)} \t|\t Validation loss: {'{:.6f}'.format(validation_loss)}")
+
+        # Save model every 10th epoch
+        if epoch % 10 == 0:
+            torch.save(model, f"../densenet-161-epoch-{epoch}.pth")
+            print(f"Saved model at epoch #{epoch}")

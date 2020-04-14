@@ -13,7 +13,7 @@ def calculate_number_of_validation_images(n):
     Calculate number of validation images that should be selected, given an image pool of size n
     """
 
-    return max(1, round(1/sqrt(2 * n) * n))
+    return n // 6  # 15% of dataset for validation, as the previous method produced too few validation images
 
 
 def check_files():
