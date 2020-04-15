@@ -5,6 +5,7 @@ from progress.bar import FillingSquaresBar, FillingCirclesBar
 from torchvision import transforms
 from torchvision.datasets import ImageFolder
 from torch.utils.data import DataLoader
+from time import time
 import torchvision.models as models
 import torch.nn as nn
 import torch
@@ -92,8 +93,10 @@ if __name__ == '__main__':
         training_loss, validation_loss, accuracy, counter = 0, 0, 0, 0
 
         model.train()
-        training_bar = FillingCirclesBar(message='Training',
+        training_bar = FillingCirclesBar(message='Training  ',  # extra space to align with validation bar
                                          max=len(training_loader))
+        training_timer = time()
+
         for inputs, labels in training_loader:
             inputs, labels = inputs.to(device), labels.to(device)
 
@@ -112,19 +115,27 @@ if __name__ == '__main__':
 
             training_bar.next()
 
+        # Training timer
+        print(
+            f" | Epoch trained in {'{:.4f}'.format(time() - training_timer)} seconds")
+
         validation_bar = FillingSquaresBar(message='Validating',
                                            max=len(validation_loader))
+        validation_timer = time()
+
         with torch.no_grad():
             for inputs, labels in validation_loader:
                 inputs, labels = inputs.to(device), labels.to(device)
 
                 # Forward pass, calculate validation loss
                 output = model.forward(inputs)
-                validation_loss = error_function(output, labels)
-                validation_loss += validation_loss.item()*inputs.size(0)
 
-                # Reverse the log part of LogSoftMax
-                real_output = torch.exp(output)
+                loss = error_function(output, labels)
+
+                validation_loss += loss.item()*inputs.size(0)
+
+                # # Reverse the log part of LogSoftMax
+                output = torch.exp(output)
 
                 # Get top class of outputs, tested for top-1
                 top_p, top_class = output.topk(1, dim=1)
@@ -136,14 +147,22 @@ if __name__ == '__main__':
 
                 validation_bar.next()
 
+        # Validation timer
+        print(
+            f" | Epoch validated in {'{:.4f}'.format(time() - validation_timer)} seconds")
+
         # Calculate and print the losses
         training_loss = training_loss / len(training_loader.dataset)
         validation_loss = validation_loss / len(validation_loader.dataset)
 
         print(f"Accuracy -> {accuracy/len(validation_loader)}")
-        print(f"Epoch {epoch} recap -> \t|\t Training loss: {'{:.6f}'.format(training_loss)} \t|\t Validation loss: {'{:.6f}'.format(validation_loss)}")
+        print(f"Epoch {epoch} recap")
+        print(f"        Training loss:   {'{:.6f}'.format(training_loss)}")
+        print(f"        Validation loss: {'{:.6f}'.format(validation_loss)}")
 
         # Save model every 10th epoch
         if epoch % 10 == 0:
             torch.save(model, f"../densenet-161-epoch-{epoch}.pth")
             print(f"Saved model at epoch #{epoch}")
+
+        print("-"*96)  # Epoch delimiter
