@@ -2,29 +2,41 @@
 
 import torch
 
+beginning_epochs_to_ignore = 5
+patience = 10
+
 
 def save_model_if_at_local_minimum(model, file_name, loss_history):
-    # Saves model when a record low validation loss has been found, to the provided filename
-    minimum_loss = min(loss_history)
-    if len(loss_history) >= 5 and loss_history[-1] == minimum_loss:
-        torch.save(model, file_name)
+    """ 
+    Saves model when a record low validation loss has been found, to the provided filename 
+    """
 
-        print(f"Saving model to {file_name} at epoch #{len(loss_history)}")
+    # ignore first n losses
+    if len(loss_history) > beginning_epochs_to_ignore:
+        minimum_loss = min(loss_history[beginning_epochs_to_ignore:])
+
+        if loss_history[-1] == minimum_loss:
+            print(f"Saving model to {file_name} at epoch #{len(loss_history)}")
+            torch.save(model, file_name)
 
 
 def should_continue_training(validation_loss_history):
-    # Assesses when to early return
-    minimum_loss = min(validation_loss_history)
+    """
+    Assesses when to stop the training early
+    """
 
-    patience = 10  # Epochs to train past the best achieved validation loss
+    minimum_list_length = patience + beginning_epochs_to_ignore
 
-    if len(validation_loss_history) < patience:
+    if len(validation_loss_history) < minimum_list_length:
         return True
+
+    # ignore first n losses
+    minimum_loss = min(validation_loss_history[beginning_epochs_to_ignore:])
 
     # Last n validation losses, where n == patience
     recent_losses = validation_loss_history[-patience:]
 
-    # check whether losses achieved recently have the (best achieved loss) + 5%
+    # check whether losses achieved recently are better than, or close to the best achieved loss
     for loss in recent_losses:
         if loss <= (minimum_loss * 1.05):
             return True
