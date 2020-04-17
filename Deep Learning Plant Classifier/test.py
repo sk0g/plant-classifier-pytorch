@@ -49,10 +49,9 @@ if __name__ == '__main__':
     # Evaluate all stored network states
     # -10 is the network state pre-training, for a baseline
     # 0 is after the first epoch, and so on till 190
-    for i in range(-10, 191, 10):
-        saved_model_name = f"../densenet-161-epoch-{i}.pth"
-        print(f"Evaluating model {saved_model_name}")
-        saved_model = torch.load(saved_model_name)
-        saved_model.eval()
+    saved_model_name = f"../densenet-161.pth"
+    print(f"Evaluating model {saved_model_name}")
+    saved_model = torch.load(saved_model_name)
+    saved_model.eval()
 
-        test_model(model_to_test=saved_model)
+    test_model(model_to_test=saved_model)
