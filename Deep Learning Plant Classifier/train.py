@@ -15,8 +15,10 @@ import helper
 # Windows workaround for LoadLibraryA issue
 ctypes.cdll.LoadLibrary('caffe2_nvrtc.dll')
 
-mean = [x / 255 for x in [125.3, 123.0, 113.9]]
-std = [x / 255 for x in [63.0, 62.1, 66.7]]
+# Placeholder values below
+# TODO: replace them with actual mean and std, by computing them over the dataset
+mean = (0.5, 0.5, 0.5)
+std = (0.5, 0.5, 0.5)
 
 
 class RandomRotationFromList:
@@ -76,9 +78,10 @@ if __name__ == '__main__':
         parameter.requires_grad = False
 
     classifier_input = model.classifier.in_features
-    num_labels = 3
+    num_labels = 17
 
     # replace the classifier layer
+    # TODO: test effects of change in feature sizes
     classifier = nn.Sequential(nn.Linear(classifier_input, 1024),
                                nn.ReLU(),
                                nn.Linear(1024, 256),
