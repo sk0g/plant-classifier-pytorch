@@ -81,12 +81,11 @@ if __name__ == '__main__':
     num_labels = 17
 
     # replace the classifier layer
-    # TODO: test effects of change in feature sizes
     classifier = nn.Sequential(nn.Linear(classifier_input, 1024),
                                nn.ReLU(),
-                               nn.Linear(1024, 256),
+                               nn.Linear(1024, 512),
                                nn.ReLU(),
-                               nn.Linear(256, num_labels),
+                               nn.Linear(512, num_labels),
                                nn.LogSoftmax(dim=1))
 
     model.classifier = classifier
@@ -99,8 +98,8 @@ if __name__ == '__main__':
 
     validation_loss_history = []
 
-    epochs = 201
-    for epoch in range(epochs):
+    max_epochs = 201
+    for epoch in range(max_epochs):
         training_loss, validation_loss, accuracy, counter = 0, 0, 0, 0
 
         model.train()
