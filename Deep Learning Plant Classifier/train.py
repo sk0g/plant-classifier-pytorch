@@ -133,7 +133,7 @@ if __name__ == '__main__':
 
         # Training timer
         print(
-            f" | time taken: {'{:.4f}'.format(time() - training_timer)} seconds")
+            f" | time taken: {helper.decimal_places(format(time() - training_timer), 2)} seconds")
 
         validation_bar = FillingSquaresBar(message='Validating',
                                            max=len(validation_loader))
@@ -168,17 +168,16 @@ if __name__ == '__main__':
 
         # Validation timer
         print(
-            f" | time taken: {'{:.4f}'.format(time() - validation_timer)} seconds")
+            f" | time taken: {helper.decimal_places(time() - validation_timer, 2)} seconds")
 
         # Calculate and print the losses
         training_loss = training_loss / len(training_loader.dataset)
         validation_loss = validation_loss / len(validation_loader.dataset)
 
-        print(f"Epoch {epoch} recap")
-        print(
-            f"\t\tAccuracy -> {'{:.4}'.format(accuracy*100/len(validation_loader))}%")
-        print(f"\t\tTraining loss:   {'{:.6f}'.format(training_loss)}")
-        print(f"\t\tValidation loss: {'{:.6f}'.format(validation_loss)}")
+        print(f'''\nEpoch {epoch} recap
+        Accuracy:        {helper.to_percentage(accuracy/len(validation_loader))}
+        Training loss:   {helper.decimal_places(training_loss, 6)}
+        Validation loss: {helper.decimal_places(validation_loss, 6)}''')
 
         validation_loss_history.append(validation_loss)
 

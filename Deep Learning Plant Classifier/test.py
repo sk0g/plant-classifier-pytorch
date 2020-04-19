@@ -9,6 +9,7 @@ import torchvision.models as models
 import torch.nn as nn
 import torch
 import random
+import helper
 
 
 testing_set = ImageFolder(root="../batches/batch-0/test",
@@ -50,8 +51,8 @@ def test_model(model_to_test):
     top_1_testing_accuracy = top_1_accuracy / len(testing_loader.dataset)
     top_5_testing_accuracy = top_5_accuracy / len(testing_loader.dataset)
     print(f'''\nAccuracy
-        top-1: {'{:.2f}'.format(top_1_testing_accuracy * 100)}%
-        top-5: {'{:.2f}'.format(top_5_testing_accuracy * 100)}%''')
+        top-1: {helper.to_percentage(top_1_testing_accuracy)}
+        top-5: {helper.to_percentage(top_5_testing_accuracy)}''')
 
 
 if __name__ == '__main__':

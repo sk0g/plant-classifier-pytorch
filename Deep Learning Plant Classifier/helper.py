@@ -2,7 +2,7 @@
 
 import torch
 
-beginning_epochs_to_ignore = 5
+beginning_epochs_to_ignore = 20
 patience = 10
 
 
@@ -40,5 +40,22 @@ def should_continue_training(validation_loss_history):
     for loss in recent_losses:
         if loss <= (minimum_loss * 1.05):
             return True
+        elif max(recent_losses) >= (min(recent_losses) * 1.5):
+            return True
 
     return False
+
+
+def decimal_places(number, decimal_places):
+    """
+    Trims a float to a given number of decimal places
+    """
+    return str(round(float(number), decimal_places))
+
+
+def to_percentage(number):
+    """
+    Formats a number as a percentage, including the % symbol at the end of the string
+    """
+    percentage = number * 100
+    return f"{decimal_places(percentage, 2)}%"
