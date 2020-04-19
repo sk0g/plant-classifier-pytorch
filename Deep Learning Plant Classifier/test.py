@@ -15,13 +15,15 @@ testing_set = ImageFolder(root="../batches/batch-0/test",
                           transform=prepare)
 
 testing_loader = DataLoader(dataset=testing_set,
-                            batch_size=32,
+                            batch_size=128,
                             shuffle=False)
 
 
 # Tests the model
 def test_model(model_to_test):
-    accuracy = 0
+    model_to_test.eval()
+
+    top_1_accuracy, top_5_accuracy = 0, 0
     testing_bar = FillingSquaresBar(message='Testing',
                                     max=len(testing_loader))
 
@@ -31,18 +33,25 @@ def test_model(model_to_test):
         # predict inputs, and reverse the LogSoftMax
         real_predictions = torch.exp(model_to_test(inputs))
 
-        # Get top class of outputs, tested for top-1
-        top_p, top_class = real_predictions.topk(1, dim=1)
-        equals = top_class == labels.view(*top_class.shape)
+        # Get top class of outputs
+        _, top_1_class = real_predictions.topk(k=1)
+        _, top_5_classes = real_predictions.topk(k=5)
 
-        # Calculate mean, add it to running accuracy for current testing batch
-        accuracy += torch.mean(
-            equals.type(torch.FloatTensor)).item()
+        # Run predictions
+        top_1_equals = top_1_class == labels.view(*top_1_class.shape)
+        top_5_equals = top_5_classes == labels.view(*top_1_class.shape)
+
+        # Count all the accurate guesses
+        top_1_accuracy += top_1_equals.sum().item()
+        top_5_accuracy += top_5_equals.sum().item()
 
         testing_bar.next()
 
-    testing_accuracy = accuracy / len(testing_loader)
-    print(f"\nAccuracy -> {'{:.4f}'.format(testing_accuracy * 100)}%")
+    top_1_testing_accuracy = top_1_accuracy / len(testing_loader.dataset)
+    top_5_testing_accuracy = top_5_accuracy / len(testing_loader.dataset)
+    print(f'''\nAccuracy
+        top-1: {'{:.2f}'.format(top_1_testing_accuracy * 100)}%
+        top-5: {'{:.2f}'.format(top_5_testing_accuracy * 100)}%''')
 
 
 if __name__ == '__main__':
