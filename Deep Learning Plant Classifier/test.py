@@ -77,7 +77,11 @@ def test_model(model_to_test):
 
     print("Displaying confusion matrix...")
     confusionMatrixPrettyPrint.plot_confusion_matrix_from_data(
-        y_test=truth_list, predictions=predictions_list, columns=class_names)
+        y_test=truth_list,
+        predictions=predictions_list,
+        columns=class_names,
+        figsize=[15, 15],
+        cmap='twilight')
 
 
 if __name__ == '__main__':

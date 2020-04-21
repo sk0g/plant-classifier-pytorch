@@ -12,6 +12,11 @@ References:
   http://scikit-learn.org/stable/auto_examples/model_selection/plot_confusion_matrix.html#sphx-glr-auto-examples-model-selection-plot-confusion-matrix-py
 """
 
+"""
+Note: this was taken from GitHub originally, link to the project below
+https://github.com/wcipriano/pretty-print-confusion-matrix
+"""
+
 import matplotlib.font_manager as fm
 import matplotlib.pyplot as plt
 import numpy as np
@@ -215,7 +220,7 @@ def pretty_plot_confusion_matrix(df_cm, annot=True, cmap="Oranges", fmt='.2f', f
 
 
 def plot_confusion_matrix_from_data(y_test, predictions, columns=None, annot=True, cmap="Oranges",
-                                    fmt='.2f', fz=11, lw=0.5, cbar=False, figsize=None, show_null_values=0,
+                                    fmt='.2f', fz=11, lw=0.5, cbar=False, figsize=None, show_null_values=2,
                                     pred_val_axis='lin'):
     """
         plot confusion matrix function with y_test (actual values) and predictions (predic),
@@ -235,10 +240,6 @@ def plot_confusion_matrix_from_data(y_test, predictions, columns=None, annot=Tru
         columns = ['class %s' % i for i in list(ascii_uppercase)[0:len(np.unique(y_test))]]
 
     confm = confusion_matrix(y_test, predictions)
-    cmap = 'Oranges'
-    fz = 11
-    figsize = [15, 15]
-    show_null_values = 2
     df_cm = DataFrame(confm, index=columns, columns=columns)
     pretty_plot_confusion_matrix(df_cm, fz=fz, cmap=cmap, figsize=figsize, show_null_values=show_null_values,
                                  pred_val_axis=pred_val_axis)
