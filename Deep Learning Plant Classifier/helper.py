@@ -50,12 +50,14 @@ def with_decimal_places(number, decimal_count):
     """
     Trims a float to a given number of decimal places
     """
-    return str(round(float(number), decimal_count))
+    # n is a placeholder for the number of decimals to keep
+    return "{:.nf}" \
+        .replace("n", str(decimal_count)) \
+        .format(number)
 
 
 def to_percentage(number):
     """
     Formats a number as a percentage, including the % symbol at the end of the string
     """
-    percentage = number * 100
-    return f"{with_decimal_places(percentage, 2)}%"
+    return "{:.2%}".format(number)

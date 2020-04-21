@@ -35,6 +35,20 @@ class_names = [
 ]
 
 
+def print_per_class_accuracy(truth_list, predictions_list):
+    tests = [[] for x in range(len(class_names))]
+
+    for truth, prediction in zip(truth_list, predictions_list):
+        is_correct = truth == prediction
+
+        tests[truth].append(is_correct)
+
+    for index, test_results in enumerate(tests):
+        accuracy = sum(test_results) / len(test_results)
+        line_to_print = f"Accuracy for {class_names[index]}".ljust(40) + f"{helper.to_percentage(accuracy)}".rjust(10)
+        print(f"\t\t{line_to_print}")
+
+
 # Tests the model
 def test_model(model_to_test):
     model_to_test.eval()
@@ -74,6 +88,9 @@ def test_model(model_to_test):
     print(f'''\nAccuracy
         top-1: {helper.to_percentage(top_1_testing_accuracy)}
         top-5: {helper.to_percentage(top_5_testing_accuracy)}''')
+
+    print("Calculating and printing per-class accuracy...")
+    print_per_class_accuracy(truth_list, predictions_list)
 
     print("Displaying confusion matrix...")
     confusionMatrixPrettyPrint.plot_confusion_matrix_from_data(
