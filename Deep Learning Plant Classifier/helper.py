@@ -46,11 +46,11 @@ def should_continue_training(validation_loss_history):
     return False
 
 
-def decimal_places(number, decimal_places):
+def with_decimal_places(number, decimal_count):
     """
     Trims a float to a given number of decimal places
     """
-    return str(round(float(number), decimal_places))
+    return str(round(float(number), decimal_count))
 
 
 def to_percentage(number):
@@ -58,4 +58,4 @@ def to_percentage(number):
     Formats a number as a percentage, including the % symbol at the end of the string
     """
     percentage = number * 100
-    return f"{decimal_places(percentage, 2)}%"
+    return f"{with_decimal_places(percentage, 2)}%"

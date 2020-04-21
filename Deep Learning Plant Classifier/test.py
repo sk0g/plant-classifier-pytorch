@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 
-from torchvision import transforms
-from progress.bar import FillingSquaresBar
-from torchvision.datasets import ImageFolder
-from torch.utils.data import DataLoader
-from train import prepare, device
-import torchvision.models as models
-import torch.nn as nn
-import torch
 import random
-import helper
 
+import helper
+import torch
+import torch.nn as nn
+import torchvision.models as models
+from progress.bar import FillingSquaresBar
+from torch.utils.data import DataLoader
+from torchvision import transforms
+from torchvision.datasets import ImageFolder
+from train import prepare, device
 
 testing_set = ImageFolder(root="../batches/batch-0/test",
                           transform=prepare)

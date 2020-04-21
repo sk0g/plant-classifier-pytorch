@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 
 import ctypes
+import random
+from time import time
+
+import helper
+import torch
+import torch.nn as nn
+import torchvision.models as models
 from progress.bar import FillingSquaresBar, FillingCirclesBar
+from torch.utils.data import DataLoader
 from torchvision import transforms
 from torchvision.datasets import ImageFolder
-from torch.utils.data import DataLoader
-from time import time
-import torchvision.models as models
-import torch.nn as nn
-import torch
-import random
-import helper
 
 # Windows workaround for LoadLibraryA issue
 ctypes.cdll.LoadLibrary('caffe2_nvrtc.dll')
@@ -38,9 +39,10 @@ prepare = transforms.Compose([
 ])
 
 augmented_transforms = transforms.Compose([
+    RandomRotationFromList([0, 90, 180, 270]),
+    transforms.RandomResizedCrop(size=(224, 224), scale=(0.9, 1.0)),
     transforms.RandomVerticalFlip(),
     transforms.RandomHorizontalFlip(),
-    RandomRotationFromList([0, 90, 180, 270]),
     prepare
 ])
 
@@ -68,33 +70,29 @@ validation_loader = DataLoader(
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-
 if __name__ == '__main__':
-    # load pretrained densenet-161 model
-    model = models.densenet161(pretrained=True)
+    # load pretrained densenet-201 model
+    model = models.densenet201(pretrained=True)
 
     # turn training off for all parameters first
     for parameter in model.parameters():
         parameter.requires_grad = False
 
-    classifier_input = model.classifier.in_features
     num_labels = 17
-
     # replace the classifier layer
-    classifier = nn.Sequential(nn.Linear(classifier_input, 1024),
-                               nn.ReLU(),
-                               nn.Linear(1024, 512),
-                               nn.ReLU(),
-                               nn.Linear(512, num_labels),
-                               nn.LogSoftmax(dim=1))
-
-    model.classifier = classifier
+    model.classifier = nn.Sequential(
+        nn.Linear(model.classifier.in_features, 1024),
+        nn.ReLU(),
+        nn.Linear(1024, 512),
+        nn.ReLU(),
+        nn.Linear(512, num_labels),
+        nn.LogSoftmax(dim=1))
 
     # Move to GPU for faster training, if available
     model.to(device)
 
     error_function = nn.NLLLoss()
-    optimiser = torch.optim.AdamW(classifier.parameters())
+    optimiser = torch.optim.AdamW(model.classifier.parameters())
 
     validation_loss_history = []
 
@@ -112,28 +110,31 @@ if __name__ == '__main__':
         # -------------------
         for inputs, labels in training_loader:
             def closure():
-                # Clear the gradients
+                # Clear the gradients and perform a forward pass
                 optimiser.zero_grad()
-
                 output = model(inputs)
 
                 # Check the loss
                 loss = error_function(output, labels)
+
+                # Clear the gradients and perform a backward pass
+                optimiser.zero_grad()
                 loss.backward()
 
                 return loss
 
+
             inputs, labels = inputs.to(device), labels.to(device)
 
+            # Call the closure and read the loss
             loss = optimiser.step(closure)
 
-            training_loss += loss.item()*inputs.size(0)
+            training_loss += loss.item() * inputs.size(0)
 
             training_bar.next()
 
         # Training timer
-        print(
-            f" | time taken: {helper.decimal_places(format(time() - training_timer), 2)} seconds")
+        print(f" | time taken: {helper.with_decimal_places(format(time() - training_timer), 2)} seconds")
 
         validation_bar = FillingSquaresBar(message='Validating',
                                            max=len(validation_loader))
@@ -151,7 +152,7 @@ if __name__ == '__main__':
 
                 loss = error_function(output, labels)
 
-                validation_loss += loss.item()*inputs.size(0)
+                validation_loss += loss.item() * inputs.size(0)
 
                 # # Reverse the log part of LogSoftMax
                 output = torch.exp(output)
@@ -167,17 +168,16 @@ if __name__ == '__main__':
                 validation_bar.next()
 
         # Validation timer
-        print(
-            f" | time taken: {helper.decimal_places(time() - validation_timer, 2)} seconds")
+        print(f" | time taken: {helper.with_decimal_places(time() - validation_timer, 2)} seconds")
 
         # Calculate and print the losses
         training_loss = training_loss / len(training_loader.dataset)
         validation_loss = validation_loss / len(validation_loader.dataset)
 
         print(f'''\nEpoch {epoch} recap
-        Accuracy:        {helper.to_percentage(accuracy/len(validation_loader))}
-        Training loss:   {helper.decimal_places(training_loss, 6)}
-        Validation loss: {helper.decimal_places(validation_loss, 6)}''')
+        Accuracy:        {helper.to_percentage(accuracy / len(validation_loader))}
+        Training loss:   {helper.with_decimal_places(training_loss, 6)}
+        Validation loss: {helper.with_decimal_places(validation_loss, 6)}''')
 
         validation_loss_history.append(validation_loss)
 
@@ -190,6 +190,7 @@ if __name__ == '__main__':
         if not helper.should_continue_training(validation_loss_history):
             print(
                 f"Training stopping early at epoch #{epoch}")
+            model.save("../densenet-201-final.pth")
             break
 
-        print("-"*96)  # Epoch delimiter
+        print("-" * 96)  # Epoch delimiter
