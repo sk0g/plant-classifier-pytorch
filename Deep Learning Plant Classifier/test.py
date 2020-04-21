@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 
+import confusionMatrixPrettyPrint
 import torch
-from matplotlib import pyplot
 from progress.bar import FillingSquaresBar
-from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 from torch.utils.data import DataLoader
 from torchvision.datasets import ImageFolder
 from train import prepare, device, helper
@@ -34,18 +33,6 @@ class_names = [
     "grevillea scortechinii",
     "grevillea venusta"
 ]
-
-
-def display_confusion_matrix(truth_list, predictions_list):
-    conf_matrix = confusion_matrix(
-        y_true=truth_list,
-        y_pred=predictions_list,
-        normalize='all')
-
-    ConfusionMatrixDisplay(confusion_matrix=conf_matrix, display_labels=class_names) \
-        .plot(xticks_rotation=90, cmap=pyplot.cm.Blues)
-
-    pyplot.show()
 
 
 # Tests the model
@@ -89,7 +76,8 @@ def test_model(model_to_test):
         top-5: {helper.to_percentage(top_5_testing_accuracy)}''')
 
     print("Displaying confusion matrix...")
-    display_confusion_matrix(truth_list, predictions_list)
+    confusionMatrixPrettyPrint.plot_confusion_matrix_from_data(
+        y_test=truth_list, predictions=predictions_list, columns=class_names)
 
 
 if __name__ == '__main__':
