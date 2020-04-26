@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
+import json
 import os
 import shutil
-import json
-from PIL import Image
 from concurrent.futures import ThreadPoolExecutor
 from random import sample, shuffle
-from math import sqrt
+
+from PIL import Image, ImageStat
 
 
 def calculate_number_of_validation_images(n):
@@ -365,8 +365,63 @@ def generate_and_record_splits():
     print("All done! You can now load up the splits and begin training.")
 
 
+def calculate_weights():
+    dataset_directory = '../dataset'
+
+    weights = []
+    for (_, _, files) in os.walk(dataset_directory):
+        image_count = len([f for f in files if f.endswith("-z.png")])
+        if image_count > 0:
+            weights.append(1000 / max(1, len(files)))
+
+    print(f"Weight calculation complete. Found all classes: {len(weights) == 17}")
+    print(weights)
+
+
+def calculate_mean_and_std():
+    dataset_directory = '../dataset'
+
+    mean_list = [[], [], []]
+    std_list = [[], [], []]
+    for (root, _, files) in os.walk(dataset_directory):
+        images = [f for f in files if f.endswith("-z.png")]
+        if len(images) > 0:
+            for image_name in images:
+                stats = ImageStat.Stat(
+                    Image.open(
+                        os.path.join(root, image_name)))
+
+                mean = stats.mean
+                std = stats.stddev
+
+                for i in range(3):
+                    mean_list[i].append(mean[i])
+                    std_list[i].append(std[i])
+
+    calculated_mean = (
+        (sum(mean_list[0]) / len(mean_list[0])) / 255,
+        (sum(mean_list[1]) / len(mean_list[1])) / 255,
+        (sum(mean_list[2]) / len(mean_list[2])) / 255,
+    )
+    calculated_std = (
+        (sum(std_list[0]) / len(std_list[0])) / 255,
+        (sum(std_list[1]) / len(std_list[1])) / 255,
+        (sum(std_list[2]) / len(std_list[2])) / 255,
+    )
+
+    print("Mean and standard deviation calculated")
+    print(f"Mean: {calculated_mean} | Std: {calculated_std}")
+
+
 if __name__ == '__main__':
-    prompt_text = "What function should be run? \n [c]heck files | [r]esize and convert | [s]plit into fragments | [g]enerate fragment variants | s[p]lit dataset \n"
+    prompt_text = "What function should be run?  \n" \
+                  "[c]heck files | " \
+                  "[r]esize and convert | " \
+                  "[s]plit into fragments | " \
+                  "[g]enerate fragment variants | " \
+                  "s[p]lit dataset | " \
+                  "calculate [w]eights | " \
+                  "calculate [m]ean and std\n"
 
     while True:
         key = input(prompt_text).lower()
@@ -381,5 +436,9 @@ if __name__ == '__main__':
             generate_fragment_variants()
         elif key == "p":
             generate_and_record_splits()
+        elif key == "w":
+            calculate_weights()
+        elif key == "m":
+            calculate_mean_and_std()
         else:
             print("Unkown key pressed, try again?")
