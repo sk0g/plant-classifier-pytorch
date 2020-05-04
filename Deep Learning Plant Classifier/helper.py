@@ -26,7 +26,6 @@ def should_continue_training(validation_loss_history):
     """
 
     minimum_list_length = patience + beginning_epochs_to_ignore
-
     if len(validation_loss_history) < minimum_list_length:
         return True
 
@@ -38,10 +37,17 @@ def should_continue_training(validation_loss_history):
 
     # check whether losses achieved recently are better than, or close to the best achieved loss
     for loss in recent_losses:
-        if loss <= (minimum_loss * 1.05):
+        if loss <= (minimum_loss * 1.02):
             return True
-        elif max(recent_losses) >= (min(recent_losses) * 1.5):
-            return True
+
+    # compare first half of recent losses to second half
+    half_index = len(recent_losses) // 2
+    first_half = recent_losses[:half_index]
+    second_half = recent_losses[-half_index:]
+
+    # if the first half is 20% higher, when summed up, than the more recent second half, continue
+    if sum(first_half) >= (sum(second_half) * 1.2):
+        return True
 
     return False
 
