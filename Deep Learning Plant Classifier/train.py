@@ -4,7 +4,6 @@ import ctypes
 import random
 from time import time
 
-import helper
 import torch
 import torch.nn as nn
 import torchvision.models as models
@@ -13,13 +12,14 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 from torchvision.datasets import ImageFolder
 
+import helper
+
 # Windows workaround for LoadLibraryA issue
 ctypes.cdll.LoadLibrary('caffe2_nvrtc.dll')
 
 # Placeholder values below
-# TODO: replace them with actual mean and std, by computing them over the dataset
-mean = (0.5, 0.5, 0.5)
-std = (0.5, 0.5, 0.5)
+mean = (0.7048001754523248, 0.6353024817539352, 0.5856219251267757)
+std = (0.21634347931241812, 0.2423184790247176, 0.2713632622907276)
 
 
 class RandomRotationFromList:
@@ -39,34 +39,35 @@ prepare = transforms.Compose([
 ])
 
 augmented_transforms = transforms.Compose([
-    RandomRotationFromList([0, 90, 180, 270]),
-    transforms.RandomResizedCrop(size=(224, 224), scale=(0.9, 1.0)),
-    transforms.RandomVerticalFlip(),
+    RandomRotationFromList([0, 90, 270]),
     transforms.RandomHorizontalFlip(),
+    transforms.RandomVerticalFlip(),
+    transforms.RandomRotation((-2, 2)),
     prepare
 ])
 
-# datasets
-training_set = ImageFolder(root="../batches/batch-0/train",
-                           transform=augmented_transforms)
 
-validation_set = ImageFolder(root="../batches/batch-0/val",
-                             transform=prepare)
+def get_training_loader(batch_number):
+    training_set = ImageFolder(root=f"../batches/batch-{batch_number}/train",
+                               transform=augmented_transforms)
 
-# dataloaders
-training_loader = DataLoader(
-    dataset=training_set,
-    batch_size=128,
-    num_workers=1,
-    pin_memory=True,
-    drop_last=True,  # TODO: test the effects of this on convergence rate
-    shuffle=True)
+    return DataLoader(
+        dataset=training_set,
+        batch_size=128,
+        num_workers=1,
+        pin_memory=True,
+        shuffle=True)
 
-validation_loader = DataLoader(
-    dataset=validation_set,
-    batch_size=128,
-    num_workers=1,
-    shuffle=True)
+
+def get_validation_loader(batch_number):
+    validation_set = ImageFolder(root=f"../batches/batch-{batch_number}/val",
+                                 transform=prepare)
+    return DataLoader(
+        dataset=validation_set,
+        batch_size=128,
+        num_workers=2,
+        shuffle=True)
+
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -91,106 +92,120 @@ if __name__ == '__main__':
     # Move to GPU for faster training, if available
     model.to(device)
 
-    error_function = nn.NLLLoss()
-    optimiser = torch.optim.AdamW(model.classifier.parameters())
-
-    validation_loss_history = []
+    error_function = nn.NLLLoss(
+        weight=torch.tensor([
+            # weights calculated from data_prep function: 100 / number(images_in_class)
+            1.00, 9.70, 5.56, 3.16, 7.35, 0.66, 3.97, 2.31, 1.02, 0.41, 0.96, 1.47, 9.09, 1.36, 1.03, 1.83, 1.20])) \
+        .to(device)
+    optimiser = torch.optim.AdamW(model.parameters(), amsgrad=True)
 
     max_epochs = 201
-    for epoch in range(max_epochs):
-        training_loss, validation_loss, accuracy, counter = 0, 0, 0, 0
 
-        model.train()
-        training_bar = FillingCirclesBar(message='Training  ',  # extra space to align with validation bar
-                                         max=len(training_loader))
-        training_timer = time()
+    # train all 10 batches (0..9)
+    for batch_num in range(0, 10):
+        validation_loss_history = []
 
-        # -------------------
-        #    TRAINING STEP
-        # -------------------
-        for inputs, labels in training_loader:
-            def closure():
-                # Clear the gradients and perform a forward pass
-                optimiser.zero_grad()
-                output = model(inputs)
+        training_loader = get_training_loader(batch_number=batch_num)
+        validation_loader = get_validation_loader(batch_number=batch_num)
 
-                # Check the loss
-                loss = error_function(output, labels)
+        print(f"Training batch-{batch_num}")
 
-                # Clear the gradients and perform a backward pass
-                optimiser.zero_grad()
-                loss.backward()
+        for epoch in range(max_epochs):
 
-                return loss
+            training_loss, validation_loss, accuracy, counter = 0, 0, 0, 0
+
+            model.train()
+            training_bar = FillingCirclesBar(message='Training  ',  # extra space to align with validation bar
+                                             max=len(training_loader))
+            training_timer = time()
+
+            # -------------------
+            #    TRAINING STEP
+            # -------------------
+            for inputs, labels in training_loader:
+                def closure():
+                    # Clear the gradients and perform a forward pass
+                    optimiser.zero_grad()
+                    output = model(inputs)
+
+                    # Check the loss
+                    loss = error_function(output, labels)
+
+                    # Clear the gradients and perform a backward pass
+                    optimiser.zero_grad()
+                    loss.backward()
+
+                    return loss
 
 
-            inputs, labels = inputs.to(device), labels.to(device)
-
-            # Call the closure and read the loss
-            loss = optimiser.step(closure)
-
-            training_loss += loss.item() * inputs.size(0)
-
-            training_bar.next()
-
-        # Training timer
-        print(f" | time taken: {helper.with_decimal_places(format(time() - training_timer), 2)} seconds")
-
-        validation_bar = FillingSquaresBar(message='Validating',
-                                           max=len(validation_loader))
-        validation_timer = time()
-
-        # -------------------
-        #   VALIDATION STEP
-        # -------------------
-        with torch.no_grad():
-            for inputs, labels in validation_loader:
                 inputs, labels = inputs.to(device), labels.to(device)
 
-                # Forward pass, calculate validation loss
-                output = model.forward(inputs)
+                # Call the closure and read the loss
+                loss = optimiser.step(closure)
 
-                loss = error_function(output, labels)
+                training_loss += loss.item() * inputs.size(0)
 
-                validation_loss += loss.item() * inputs.size(0)
+                training_bar.next()
 
-                # # Reverse the log part of LogSoftMax
-                output = torch.exp(output)
+            # Training timer
+            print(f" | time taken: {helper.with_decimal_places(time() - training_timer, 2)} seconds")
 
-                # Get top class of outputs, tested for top-1
-                top_p, top_class = output.topk(1, dim=1)
-                equals = top_class == labels.view(*top_class.shape)
+            validation_bar = FillingSquaresBar(message='Validating',
+                                               max=len(validation_loader))
+            validation_timer = time()
 
-                # Calculate mean, add it to running accuracy for current epoch
-                accuracy += torch.mean(
-                    equals.type(torch.FloatTensor)).item()
+            # -------------------
+            #   VALIDATION STEP
+            # -------------------
+            with torch.no_grad():
+                for inputs, labels in validation_loader:
+                    inputs, labels = inputs.to(device), labels.to(device)
 
-                validation_bar.next()
+                    # Forward pass, calculate validation loss
+                    output = model.forward(inputs)
 
-        # Validation timer
-        print(f" | time taken: {helper.with_decimal_places(time() - validation_timer, 2)} seconds")
+                    loss = error_function(output, labels)
 
-        # Calculate and print the losses
-        training_loss = training_loss / len(training_loader.dataset)
-        validation_loss = validation_loss / len(validation_loader.dataset)
+                    validation_loss += loss.item() * inputs.size(0)
 
-        print(f'''\nEpoch {epoch} recap
-        Accuracy:        {helper.to_percentage(accuracy / len(validation_loader))}
-        Training loss:   {helper.with_decimal_places(training_loss, 6)}
-        Validation loss: {helper.with_decimal_places(validation_loss, 6)}''')
+                    # # Reverse the log part of LogSoftMax
+                    output = torch.exp(output)
 
-        validation_loss_history.append(validation_loss)
+                    # Get top class of outputs, tested for top-1
+                    top_p, top_class = output.topk(1, dim=1)
+                    equals = top_class == labels.view(*top_class.shape)
 
-        # save model when a new record low validation loss has been found
-        helper.save_model_if_at_local_minimum(
-            model=model,
-            file_name="../densenet-161.pth",
-            loss_history=validation_loss_history)
+                    # Calculate mean, add it to running accuracy for current epoch
+                    accuracy += torch.mean(
+                        equals.type(torch.FloatTensor)).item()
 
-        if not helper.should_continue_training(validation_loss_history):
-            print(
-                f"Training stopping early at epoch #{epoch}")
-            model.save("../densenet-201-final.pth")
-            break
+                    validation_bar.next()
 
-        print("-" * 96)  # Epoch delimiter
+            # Validation timer
+            print(f" | time taken: {helper.with_decimal_places(time() - validation_timer, 2)} seconds")
+
+            # Calculate and print the losses
+            training_loss = training_loss / len(training_loader.dataset)
+            validation_loss = validation_loss / len(validation_loader.dataset)
+
+            print(f'''\nEpoch {epoch} recap
+            Accuracy:        {helper.to_percentage(accuracy / len(validation_loader))}
+            Training loss:   {helper.with_decimal_places(training_loss, 6)}
+            Validation loss: {helper.with_decimal_places(validation_loss, 6)}''')
+
+            validation_loss_history.append(validation_loss)
+
+            # save model when a new record low validation loss has been found
+            helper.save_model_if_at_local_minimum(
+                model=model,
+                file_name=f"../batch-{batch_num}-densenet-201.pth",
+                loss_history=validation_loss_history)
+
+            if not helper.should_continue_training(validation_loss_history):
+                print(
+                    f"Training stopping early at epoch #{epoch}")
+                break
+
+            print("-" * 96)  # Epoch delimiter
+
+        print(f"Batch {batch_num} finished training")
