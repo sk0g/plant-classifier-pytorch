@@ -72,37 +72,37 @@ def get_validation_loader(batch_number):
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 if __name__ == '__main__':
-    # load pretrained densenet-201 model
-    model = models.densenet201(pretrained=True)
-
-    # turn training off for all parameters first
-    for parameter in model.parameters():
-        parameter.requires_grad = False
-
-    num_labels = 17
-    # replace the classifier layer
-    model.classifier = nn.Sequential(
-        nn.Linear(model.classifier.in_features, 1024),
-        nn.ReLU(),
-        nn.Linear(1024, 512),
-        nn.ReLU(),
-        nn.Linear(512, num_labels),
-        nn.LogSoftmax(dim=1))
-
-    # Move to GPU for faster training, if available
-    model.to(device)
-
-    error_function = nn.NLLLoss(
-        weight=torch.tensor([
-            # weights calculated from data_prep function: 100 / number(images_in_class)
-            1.00, 9.70, 5.56, 3.16, 7.35, 0.66, 3.97, 2.31, 1.02, 0.41, 0.96, 1.47, 9.09, 1.36, 1.03, 1.83, 1.20])) \
-        .to(device)
-    optimiser = torch.optim.AdamW(model.parameters(), amsgrad=True)
-
-    max_epochs = 201
-
     # train all 10 batches (0..9)
     for batch_num in range(0, 10):
+        # load pretrained densenet-201 model
+        model = models.densenet201(pretrained=True)
+
+        # turn training off for all parameters first
+        for parameter in model.parameters():
+            parameter.requires_grad = False
+
+        num_labels = 17
+        # replace the classifier layer
+        model.classifier = nn.Sequential(
+            nn.Linear(model.classifier.in_features, 1024),
+            nn.ReLU(),
+            nn.Linear(1024, 512),
+            nn.ReLU(),
+            nn.Linear(512, num_labels),
+            nn.LogSoftmax(dim=1))
+
+        # Move to GPU for faster training, if available
+        model.to(device)
+
+        error_function = nn.NLLLoss(
+            weight=torch.tensor([
+                # weights calculated from data_prep function: 100 / number(images_in_class)
+                1.00, 9.70, 5.56, 3.16, 7.35, 0.66, 3.97, 2.31, 1.02, 0.41, 0.96, 1.47, 9.09, 1.36, 1.03, 1.83, 1.20])) \
+            .to(device)
+        optimiser = torch.optim.AdamW(model.parameters(), amsgrad=True)
+
+        max_epochs = 201
+
         validation_loss_history = []
 
         training_loader = get_training_loader(batch_number=batch_num)
