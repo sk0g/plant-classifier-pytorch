@@ -71,18 +71,22 @@ def get_validation_loader(batch_number):
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-if __name__ == '__main__':
-    # train all 10 batches (0..9)
-    for batch_num in range(0, 10):
-        # load pretrained densenet-201 model
+
+def get_model(type):
+    """
+    type should be one of (resnext|densenet)
+    """
+    num_labels = 17
+
+    if type == "resnext":
+        model = models.resnext101_32x8d(pretrained=True)
+        model.fc = nn.Sequential(
+            nn.Linear(2048, num_labels),
+            nn.LogSoftmax(dim=1))
+        return model
+
+    elif type == "densenet":
         model = models.densenet201(pretrained=True)
-
-        # turn training off for all parameters first
-        for parameter in model.parameters():
-            parameter.requires_grad = False
-
-        num_labels = 17
-        # replace the classifier layer
         model.classifier = nn.Sequential(
             nn.Linear(model.classifier.in_features, 1024),
             nn.ReLU(),
@@ -90,6 +94,14 @@ if __name__ == '__main__':
             nn.ReLU(),
             nn.Linear(512, num_labels),
             nn.LogSoftmax(dim=1))
+        return model
+
+
+if __name__ == '__main__':
+    # train all 10 batches (0..9)
+    for batch_num in range(8, 10):
+
+        model = get_model("resnext")
 
         # Move to GPU for faster training, if available
         model.to(device)
@@ -198,7 +210,7 @@ if __name__ == '__main__':
             # save model when a new record low validation loss has been found
             helper.save_model_if_at_local_minimum(
                 model=model,
-                file_name=f"../batch-{batch_num}-densenet-201.pth",
+                file_name=f"../batch-{batch_num}-resnext101-32x8d.pth",
                 loss_history=validation_loss_history)
 
             if not helper.should_continue_training(validation_loss_history):
