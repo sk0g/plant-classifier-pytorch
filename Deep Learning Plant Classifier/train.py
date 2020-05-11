@@ -7,15 +7,12 @@ from time import time
 import torch
 import torch.nn as nn
 import torchvision.models as models
-from progress.bar import FillingSquaresBar, FillingCirclesBar
+from progress.bar import IncrementalBar
 from torch.utils.data import DataLoader
 from torchvision import transforms
 from torchvision.datasets import ImageFolder
 
 import helper
-
-# Windows workaround for LoadLibraryA issue
-ctypes.cdll.LoadLibrary('caffe2_nvrtc.dll')
 
 # Placeholder values below
 mean = (0.7048001754523248, 0.6353024817539352, 0.5856219251267757)
@@ -98,9 +95,7 @@ def get_model(type):
 
 
 if __name__ == '__main__':
-    # train all 10 batches (0..9)
-    for batch_num in range(8, 10):
-
+    for batch_num in range(0, 10):
         model = get_model("resnext")
 
         # Move to GPU for faster training, if available
@@ -127,8 +122,9 @@ if __name__ == '__main__':
             training_loss, validation_loss, accuracy, counter = 0, 0, 0, 0
 
             model.train()
-            training_bar = FillingCirclesBar(message='Training  ',  # extra space to align with validation bar
-                                             max=len(training_loader))
+            training_bar = IncrementalBar(message='Training  ',
+                                          max=len(training_loader),
+                                          suffix="%(percent)d%% [%(elapsed_td)s / %(eta_td)s]")
             training_timer = time()
 
             # -------------------
@@ -145,6 +141,7 @@ if __name__ == '__main__':
 
                     # Clear the gradients and perform a backward pass
                     optimiser.zero_grad()
+
                     loss.backward()
 
                     return loss
@@ -160,10 +157,13 @@ if __name__ == '__main__':
                 training_bar.next()
 
             # Training timer
-            print(f" | time taken: {helper.with_decimal_places(time() - training_timer, 2)} seconds")
+            training_time = helper.with_decimal_places(
+                time() - training_timer, 2)
+            print(f" | time taken: {training_time} seconds")
 
-            validation_bar = FillingSquaresBar(message='Validating',
-                                               max=len(validation_loader))
+            validation_bar = IncrementalBar(message='Validating',
+                                            max=len(validation_loader),
+                                            suffix="%(percent)d%% [%(elapsed_td)s / %(eta_td)s]")
             validation_timer = time()
 
             # -------------------
@@ -194,16 +194,21 @@ if __name__ == '__main__':
                     validation_bar.next()
 
             # Validation timer
-            print(f" | time taken: {helper.with_decimal_places(time() - validation_timer, 2)} seconds")
+            validation_time = helper.with_decimal_places(
+                time() - validation_timer, 2)
+            print(f" | time taken: {validation_time} seconds\n")
 
             # Calculate and print the losses
             training_loss = training_loss / len(training_loader.dataset)
             validation_loss = validation_loss / len(validation_loader.dataset)
 
-            print(f'''\nEpoch {epoch} recap
-            Accuracy:        {helper.to_percentage(accuracy / len(validation_loader))}
-            Training loss:   {helper.with_decimal_places(training_loss, 6)}
-            Validation loss: {helper.with_decimal_places(validation_loss, 6)}''')
+            accuracy = helper.to_percentage(accuracy / len(validation_loader))
+            training_loss = helper.with_decimal_places(training_loss, 6)
+            validation_loss = helper.with_decimal_places(validation_loss, 6)
+            print(f"Epoch {epoch} -> " +
+                  f"Accuracy {accuracy} | " +
+                  f"Training loss {training_loss} | " +
+                  f"Validation loss {validation_loss}")
 
             validation_loss_history.append(validation_loss)
 
@@ -214,8 +219,7 @@ if __name__ == '__main__':
                 loss_history=validation_loss_history)
 
             if not helper.should_continue_training(validation_loss_history):
-                print(
-                    f"Training stopping early at epoch #{epoch}")
+                print(f"Training stopping early at epoch #{epoch}")
                 break
 
             print("-" * 96)  # Epoch delimiter
