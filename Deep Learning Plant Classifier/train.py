@@ -50,9 +50,10 @@ def get_training_loader(batch_number):
 
     return DataLoader(
         dataset=training_set,
-        batch_size=128,
+        batch_size=23,
         num_workers=1,
         pin_memory=True,
+        drop_last=True,
         shuffle=True)
 
 
@@ -61,8 +62,9 @@ def get_validation_loader(batch_number):
                                  transform=prepare)
     return DataLoader(
         dataset=validation_set,
-        batch_size=128,
-        num_workers=2,
+        batch_size=256,
+        num_workers=1,
+        pin_memory=True,
         shuffle=True)
 
 
@@ -76,27 +78,39 @@ def get_model(type):
     num_labels = 17
 
     if type == "resnext":
-        model = models.resnext101_32x8d(pretrained=True)
+        model = models.resnext50_32x4d(pretrained=True)
+
+        # Replace the classifier, all layers will be trained
         model.fc = nn.Sequential(
-            nn.Linear(2048, num_labels),
+            nn.Linear(model.fc.in_features, num_labels),
             nn.LogSoftmax(dim=1))
         return model
 
     elif type == "densenet":
         model = models.densenet201(pretrained=True)
+
+        # Replace the classifier, all layers will be trained
         model.classifier = nn.Sequential(
-            nn.Linear(model.classifier.in_features, 1024),
-            nn.ReLU(),
-            nn.Linear(1024, 512),
-            nn.ReLU(),
-            nn.Linear(512, num_labels),
+            nn.Linear(model.classifier.in_features, num_labels),
+            nn.LogSoftmax(dim=1))
+        return model
+
+    elif type == "shufflenet":
+        model = models.shufflenet_v2_x1_0(pretrained=True)
+
+        # Replace the classifier, all layers will be trained
+        model.fc = nn.Sequential(
+            nn.Linear(
+                in_features=model.fc.in_features,
+                out_features=num_labels),
             nn.LogSoftmax(dim=1))
         return model
 
 
 if __name__ == '__main__':
     for batch_num in range(0, 10):
-        model = get_model("resnext")
+        model_name = "densenet"  # change when training different networks
+        model = get_model(model_name)
 
         # Move to GPU for faster training, if available
         model.to(device)
@@ -138,14 +152,11 @@ if __name__ == '__main__':
 
                     # Check the loss
                     loss = error_function(output, labels)
-
-                    # Clear the gradients and perform a backward pass
                     optimiser.zero_grad()
 
                     loss.backward()
 
                     return loss
-
 
                 inputs, labels = inputs.to(device), labels.to(device)
 
@@ -202,20 +213,17 @@ if __name__ == '__main__':
             training_loss = training_loss / len(training_loader.dataset)
             validation_loss = validation_loss / len(validation_loader.dataset)
 
-            accuracy = helper.to_percentage(accuracy / len(validation_loader))
-            training_loss = helper.with_decimal_places(training_loss, 6)
-            validation_loss = helper.with_decimal_places(validation_loss, 6)
             print(f"Epoch {epoch} -> " +
-                  f"Accuracy {accuracy} | " +
-                  f"Training loss {training_loss} | " +
-                  f"Validation loss {validation_loss}")
+                  f"Accuracy {helper.to_percentage(accuracy / len(validation_loader))} | " +
+                  f"Training loss {helper.with_decimal_places(training_loss, 6)} | " +
+                  f"Validation loss {helper.with_decimal_places(validation_loss, 6)}")
 
             validation_loss_history.append(validation_loss)
 
             # save model when a new record low validation loss has been found
             helper.save_model_if_at_local_minimum(
                 model=model,
-                file_name=f"../batch-{batch_num}-resnext101-32x8d.pth",
+                file_name=f"../batch-{batch_num}-{model_name}-full.pth",
                 loss_history=validation_loss_history)
 
             if not helper.should_continue_training(validation_loss_history):
