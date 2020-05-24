@@ -20,7 +20,7 @@ if os.name == 'nt':
     import ctypes
     ctypes.cdll.LoadLibrary('caffe2_nvrtc.dll')
 
-# Placeholder values below
+# Values calculated using data_prep.calculate_mean_and_std()
 mean = (0.7048001754523248, 0.6353024817539352, 0.5856219251267757)
 std = (0.21634347931241812, 0.2423184790247176, 0.2713632622907276)
 
