@@ -2,7 +2,7 @@
 
 import torch
 
-beginning_epochs_to_ignore = 20
+beginning_epochs_to_ignore = 10
 patience = 10
 
 
