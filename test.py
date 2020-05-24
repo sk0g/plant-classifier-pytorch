@@ -179,6 +179,8 @@ def test_batches(model_name_ending):
         print(
             f"top-1 accuracies: {[helper.to_percentage(accuracy) for accuracy in top_1_accuracies]}")
         print(
+            f"top-5 accuracies: {[helper.to_percentage(accuracy) for accuracy in top_5_accuracies]}")
+        print(
             f"top-1: mean={helper.to_percentage(top_1_mean)} +-{helper.to_percentage(top_1_std)}")
         print(
             f"top-5: mean={helper.to_percentage(top_5_mean)} +-{helper.to_percentage(top_5_std)}")
