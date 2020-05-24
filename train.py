@@ -4,6 +4,7 @@ import ctypes
 import random
 from time import time
 
+import os
 import torch
 import torch.nn as nn
 import torchvision.models as models
@@ -13,6 +14,11 @@ from torchvision import transforms
 from torchvision.datasets import ImageFolder
 
 import helper
+
+# Workaround for LoadLibraryA issue on Windows
+if os.name == 'nt':
+    import ctypes
+    ctypes.cdll.LoadLibrary('caffe2_nvrtc.dll')
 
 # Placeholder values below
 mean = (0.7048001754523248, 0.6353024817539352, 0.5856219251267757)
