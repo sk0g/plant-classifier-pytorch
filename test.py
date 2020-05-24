@@ -58,40 +58,46 @@ def print_per_class_accuracy(truth_list, predictions_list):
 
 
 # Tests the model
-def test_model(model_to_test):
-    testing_loader = get_testing_loader(batch_num=0)
+def test_model(saved_model_name):
+    model_to_test = torch.load(saved_model_name)
 
-    model_to_test.eval()
+    # batch files are of format "batch-{batch_num}-{model_name}.pth", retreive batch_num
+    batch_number = saved_model_name.split("-")[1]
+    testing_loader = get_testing_loader(batch_num=batch_number)
 
-    truth_list, predictions_list = [], []
-    top_1_accuracy, top_5_accuracy = 0, 0
-    testing_bar = FillingSquaresBar(message='Testing',
-                                    max=len(testing_loader))
+    # no_grad call allows processing bigger batches at once
+    with torch.no_grad():
+        model_to_test.eval()
 
-    for inputs, labels in testing_loader:
-        inputs, labels = inputs.to(device), labels.to(device)
+        truth_list, predictions_list = [], []
+        top_1_accuracy, top_5_accuracy = 0, 0
+        testing_bar = FillingSquaresBar(message='Testing',
+                                        max=len(testing_loader))
 
-        # predict inputs, and reverse the LogSoftMax
-        real_predictions = torch.exp(model_to_test(inputs))
+        for inputs, labels in testing_loader:
+            inputs, labels = inputs.to(device), labels.to(device)
 
-        # Get top class of outputs
-        _, top_1_class = real_predictions.topk(k=1)
-        _, top_5_classes = real_predictions.topk(k=5)
+            # predict inputs, and reverse the LogSoftMax
+            real_predictions = torch.exp(model_to_test(inputs))
 
-        # Run predictions
-        top_1_equals = top_1_class == labels.view(*top_1_class.shape)
-        top_5_equals = top_5_classes == labels.view(*top_1_class.shape)
+            # Get top class of outputs
+            _, top_1_class = real_predictions.topk(k=1)
+            _, top_5_classes = real_predictions.topk(k=5)
 
-        # Count all the accurate guesses
-        top_1_accuracy += top_1_equals.sum().item()
-        top_5_accuracy += top_5_equals.sum().item()
+            # Run predictions
+            top_1_equals = top_1_class == labels.view(*top_1_class.shape)
+            top_5_equals = top_5_classes == labels.view(*top_1_class.shape)
 
-        # append to confusion matrix lists
-        for truth, prediction in zip(labels.view(-1), top_1_class.view(-1)):
-            predictions_list.append(prediction.item())
-            truth_list.append(truth.item())
+            # Count all the accurate guesses
+            top_1_accuracy += top_1_equals.sum().item()
+            top_5_accuracy += top_5_equals.sum().item()
 
-        testing_bar.next()
+            # append to confusion matrix lists
+            for truth, prediction in zip(labels.view(-1), top_1_class.view(-1)):
+                predictions_list.append(prediction.item())
+                truth_list.append(truth.item())
+
+            testing_bar.next()
 
     top_1_testing_accuracy = top_1_accuracy / len(testing_loader.dataset)
     top_5_testing_accuracy = top_5_accuracy / len(testing_loader.dataset)
@@ -193,9 +199,10 @@ if __name__ == '__main__':
 
     if len(sys.argv) == 3 and sys.argv[1].lower() == "batch":
         test_batches(sys.argv[2])
-    else:
-        saved_model_name = f"../batch-0-resnext101-32x8d.pth"
-        print(f"Evaluating model {saved_model_name}")
-        saved_model = torch.load(saved_model_name)
+    elif len(sys.argv) == 2 and sys.argv[1].lower().endswith(".pth"):
+        saved_model_name = sys.argv[1]
 
-        test_model(model_to_test=saved_model)
+        print(f"Evaluating model {saved_model_name}")
+        test_model(saved_model_name)
+    else:
+        print("Unknown command, please check usage")
