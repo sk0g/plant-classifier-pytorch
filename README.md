@@ -1,4 +1,4 @@
-# Griffith-Advanced-Topic
+# Plant Classifier (PyTorch)
 A deep learning plant classifier project, using PyTorch and Python 3.8
 
 Networks used:
